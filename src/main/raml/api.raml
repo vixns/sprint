@@ -1,0 +1,110 @@
+#%RAML 1.0
+---
+title: Sprint
+mediaType: application/json
+baseUri: http://$BASE_URL$/
+version: v1
+schemas:
+  - ContainerRunDefinition: !include schemas/ContainerRunDefinition.json
+
+/v1:
+  /runs:
+    get:
+      description:
+          Gets the list of container runs.
+      queryParameters:
+        includeFinished:
+          required: false
+          type: boolean
+          description: Should container runs that have already completed be returned, `true` by default.
+        labels:
+          required: false
+          type: string
+          description: A label filter, e.g. `region:us,version:1` (both must match).
+      responses:
+        200:
+          description: List of container runs.
+          body:
+            application/json:
+              type: array
+              example: !include examples/container_run_list.json
+    post:
+      description:
+          Starts a new container run.
+      body:
+        application/json:
+          example: !include examples/container_run_new.json
+          schema: ContainerRunDefinition
+      responses:
+        201:
+          description: The container has been started.
+          body:
+            application/json:
+              example: !include examples/container_run_status.json
+        400:
+          description: The container definition provided in the body is not valid.
+          body:
+            text/plain:
+              type: string
+              example: |
+                The request content was malformed:
+                Object is missing required member 'container'
+
+    /{id}:
+      get:
+        description: Get information about a specified container run.
+        responses:
+          200:
+            description: Container definition and state.
+            body:
+              application/json:
+                example: !include examples/container_run_get.json
+          404:
+            description: No container run found with this `id`.
+            body:
+              text/plain:
+                type: string
+                example: 067e6162-3b6f-4ae2-a171
+      delete:
+        description: Terminate a container run with the specified `id`.
+        responses:
+          200:
+            description: Container termination has started or it is already terminated.
+            body:
+              text/plain:
+                type: string
+                example: 067e6162-3b6f-4ae2-a171-2470b63dff00
+          404:
+            description: No container run found with this `id`.
+            body:
+              text/plain:
+                type: string
+                example: 067e6162-3b6f-4ae2-a171
+
+/status:
+  get:
+    description: Get an overview of sprint itself.
+    responses:
+      200:
+        description: Sprint state successfully retrieved.
+        body:
+          application/json:
+            example: !include examples/sprint_status.json
+  /ping:
+    get:
+      description: Responds with `pong`.
+      responses:
+        200:
+          body:
+            text/plain:
+              type: string
+              example: pong
+  /leading:
+      get:
+        description: Checks whether this instance is the leader.
+        responses:
+          200:
+            body:
+              text/plain:
+                type: string
+                example: true

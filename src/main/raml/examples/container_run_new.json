@@ -1,0 +1,21 @@
+{
+  "labels": {
+    "tier": "local",
+    "name": "testing-sprint"
+  },
+  "args": [
+    "env"
+  ],
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "alpine:3.7",
+      "forcePullImage": false
+    }
+  },
+  "cpus": 0.1,
+  "mem": 100,
+  "env": {
+    "HELLO_VAR": "hello-world"
+  }
+}

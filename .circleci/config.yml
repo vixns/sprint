@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    steps:
+      - checkout
+      - restore_cache:
+          key: cache-{{ checksum "build.sbt" }}-{{ checksum "project/plugins.sbt" }}-{{ checksum "project/build.properties" }}
+      - run:
+          name: Install raml2html
+          command: npm install --global raml2html@6.3.0
+      - run:
+          name: Run unit and integration tests
+          command: sbt clean headerCheck test it:test
+      - save_cache:
+          key: cache-{{ checksum "build.sbt" }}-{{ checksum "project/plugins.sbt" }}-{{ checksum "project/build.properties" }}
+          paths:
+            - "~/.ivy2"
+            - "~/.sbt"
+      - run:
+          name: Push Sprint image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              sbt dockerPush
+            fi

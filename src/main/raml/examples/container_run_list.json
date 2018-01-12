@@ -1,0 +1,31 @@
+[
+  {
+    "id": "e0cf0cb5-8e85-4fa2-8be8-f2f174ac84d7",
+    "lastModified": "2018-01-12T12:29:59.946Z",
+    "state": "Running",
+    "network": {
+      "host": "agent001.mesos.local"
+    },
+    "definition": {
+      "container": {
+        "docker": {
+          "image": "alpine:3.7",
+          "forcePullImage": false
+        },
+        "type": "DOCKER"
+      },
+      "labels": {
+        "tier": "local",
+        "name": "testing-sprint"
+      },
+      "mem": 100,
+      "cpus": 0.1,
+      "args": [
+        "env"
+      ],
+      "env": {
+        "HELLO_VAR": "hello-world"
+      }
+    }
+  }
+]

@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "container"
+  ],
+  "properties": {
+    "args": {
+      "type": "array",
+      "description": "An array of arguments for the container",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cmd": {
+      "type": "string"
+    },
+    "container": {
+      "$schema": "http://json-schema.org/schema#",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "docker", "type"
+      ],
+      "properties": {
+        "docker": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "image"
+          ],
+          "properties": {
+            "forcePullImage": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parameters": {
+              "type": "array",
+              "required": [ "key" ],
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": ["DOCKER"]
+        },
+        "portMappings": {
+          "type": "array",
+          "properties": {
+            "containerPort": {
+              "type": "number"
+            },
+            "hostPort": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "containerPort"
+          ]
+        }
+      }
+    },
+    "cpus": {
+      "minimum": 0,
+      "type": "number"
+    },
+    "mem": {
+      "description": "Memory size in megabytes dedicated to the container",
+      "minimum": 0,
+      "type": "number"
+    },
+    "env": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "string"
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "string"
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "additionalItems": false,
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string",
+            "enum": ["LIKE", "UNLIKE"]
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    }
+  }
+}

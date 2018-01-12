@@ -1,0 +1,9 @@
+{
+  "leading": true,
+  "leader": {
+    "hostname": "agent001.mesos.local",
+    "port": 9090
+  },
+  "version": "0.1.0-72-gc72c445",
+  "gitCommit": "c72c445f9a244a58d0fb02fdda0fb8f3bf209896"
+}
