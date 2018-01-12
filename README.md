@@ -1,4 +1,4 @@
-# Sprint [![CircleCI](https://circleci.com/gh/adform/sprint.svg?style=svg)](https://circleci.com/gh/adform/sprint)
+# Sprint [![CircleCI](https://circleci.com/gh/adform/sprint.svg?style=svg)](https://circleci.com/gh/adform/sprint) [![](https://images.microbadger.com/badges/version/adform/sprint.svg)](https://microbadger.com/images/adform/sprint)
 
 Sprint is an [Apache Mesos](https://mesos.apache.org/) framework that lets you run one-off tasks on your mesos cluster using a dead simple REST API. It can be used to run various adhoc tasks or as a building block for other systems such as job schedulers.
 
