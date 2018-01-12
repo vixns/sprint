@@ -15,7 +15,7 @@ Sprint is distributed as a docker image and the preferred method of running it i
   "container": {
     "type": "DOCKER",
     "docker": {
-      "image": "adform/sprint:0.2.0",
+      "image": "adform/sprint:v0.2.0",
       "portMappings": [
         { "containerPort": 9090, "hostPort": 0, "name": "api"   },
         { "containerPort": 0,    "hostPort": 0, "name": "mesos" },
