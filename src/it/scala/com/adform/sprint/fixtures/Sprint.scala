@@ -92,7 +92,7 @@ trait SprintBuilder { this: Suite with Matchers with Eventually with Docker with
             ).asJava).asJava)
           .build()
         )
-        .image(s"docker.adform.com/rip/sprint:${BuildInfo.version}")
+        .image(s"adform/sprint:${BuildInfo.version}")
         .exposedPorts(Set(sprintPort.toString).asJava)
         .env(List(
           s"ZOOKEEPER_CONNECT=zk://${zookeeper.name}:${zookeeper.port}/sprint",
