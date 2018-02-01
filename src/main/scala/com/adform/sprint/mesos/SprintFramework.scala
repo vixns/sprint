@@ -27,7 +27,6 @@ import org.log4s._
 
 final case class SlaveNetworkingInfo(hostname: String, portMapping: Map[Int, Int])
 
-
 final case class PortRange(start: Int, end: Int) {
   def portCount: Int = end - start + 1
 }
@@ -54,6 +53,8 @@ trait Framework {
 class SprintFramework(containerRunManager: ContainerRunManager)(implicit context: ExecutionContext) extends Framework {
 
   private[this] val log = getLogger
+
+  private[this] val envVarNameIllegalChars = "[^0-9A-Z_]".r
 
   override def considerOffers(offers: Seq[Offer]): Future[Seq[OfferResponse]] = {
     containerRunManager
@@ -193,8 +194,14 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       }.getOrElse(Nil)
     }.toMap
 
+
+    val labelEnvVars = containerRun.definition.labels.getOrElse(Map.empty[String, String]).map { case (name, value) =>
+      val nameReplaced =  envVarNameIllegalChars.replaceAllIn(name.toUpperCase, "_")
+      ("SPRINT_LABEL_" + nameReplaced, value)
+    }
+
     val environmentInfo = Environment.newBuilder()
-      .addAllVariables((containerEnvVars ++ portEnvVars).map(buildVariable).asJava)
+      .addAllVariables((containerEnvVars ++ portEnvVars ++ labelEnvVars).map(buildVariable).asJava)
 
     val commandInfo = CommandInfo.newBuilder()
       .setShell(false)
