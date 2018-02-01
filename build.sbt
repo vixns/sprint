@@ -7,7 +7,7 @@ licenses += ("MPL-2.0", new URL("http://mozilla.org/MPL/2.0/"))
 scalaVersion  := "2.12.4"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
-val akkaVersion = "2.5.8"
+val akkaVersion = "2.5.9"
 val akkaHttpVersion = "10.0.11"
 val curatorVersion = "2.12.0"
 val mesosVersion = "1.4.1"
@@ -28,13 +28,13 @@ libraryDependencies ++= Seq(
   "org.log4s"               %% "log4s"                 % "1.4.0",
   "ch.qos.logback"           % "logback-classic"       % "1.2.3",
   "org.slf4j"                % "log4j-over-slf4j"      % "1.7.25",
-  "org.scalatest"           %% "scalatest"             % "3.0.4"         % "test,it",
+  "org.scalatest"           %% "scalatest"             % "3.0.5"         % "test,it",
   "com.typesafe.akka"       %% "akka-http-testkit"     % akkaHttpVersion % "test",
   "org.mockito"              % "mockito-core"          % "2.13.0"        % "test",
   "org.scalacheck"          %% "scalacheck"            % "1.13.5"        % "test",
   "org.scalaj"              %% "scalaj-http"           % "2.3.0"         % "it",
   "net.liftweb"             %% "lift-json"             % "3.1.1"         % "it",
-  "com.spotify"              % "docker-client"         % "8.10.0"        % "it"
+  "com.spotify"              % "docker-client"         % "8.11.1"        % "it"
 )
 
 dependencyOverrides ++= Seq(
