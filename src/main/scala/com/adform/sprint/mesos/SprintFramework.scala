@@ -12,8 +12,8 @@ package mesos
 import state._
 import model.{Parameter => SParameter, PortMapping => SPortMapping, _}
 import model.StorageUnit.conversions._
-
 import java.util.UUID
+
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,8 +24,11 @@ import org.apache.mesos.Protos.ContainerInfo.DockerInfo.PortMapping
 import org.apache.mesos.Protos.Environment.Variable
 import org.log4s._
 
+import scala.annotation.tailrec
+
 
 final case class SlaveNetworkingInfo(hostname: String, portMapping: Map[Int, Int])
+
 
 final case class PortRange(start: Int, end: Int) {
   def portCount: Int = end - start + 1
@@ -96,11 +99,19 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
     }
   }
 
-  def matchOffers(offers: Seq[Offer], runs: Seq[ContainerRun]): Map[Seq[Offer], Option[ContainerRun]] = runs match {
-    case Nil => Map(offers -> None)
-    case run +: remainingRuns =>
-      val (runOffers, unusedOffers) = findAndPartitionOffers(run, offers)
-      matchOffers(unusedOffers, remainingRuns) + (runOffers -> Some(run))
+  def matchOffers(offers: Seq[Offer], runs: Seq[ContainerRun]): Map[Seq[Offer], Option[ContainerRun]] = {
+    
+    @tailrec
+    def matchOffersRecursive(offers: Seq[Offer], runs: Seq[ContainerRun], matched: Map[Seq[Offer], Option[ContainerRun]]): Map[Seq[Offer], Option[ContainerRun]] = {
+      runs match {
+        case Nil => matched + (offers -> None)
+        case run +: remainingRuns =>
+          val (runOffers, unusedOffers) = findAndPartitionOffers(run, offers)
+          matchOffersRecursive(unusedOffers, remainingRuns, matched + (runOffers -> Some(run)))
+      }
+    }
+
+    matchOffersRecursive(offers, runs, Map())
   }
 
   // Partitions a list of offers into those that can be used to run a give container and those that are left or can't
