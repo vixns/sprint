@@ -78,8 +78,8 @@ dockerfile in docker := {
     env("TERM" -> "xterm")
 
     runRaw(
-      "wget http://ftp.de.debian.org/debian/pool/main/o/openssl/libssl1.0.0_1.0.1t-1+deb8u7_amd64.deb && " +
-      "dpkg -i libssl1.0.0_1.0.1t-1+deb8u7_amd64.deb && rm -rf libssl1.0.0_1.0.1t-1+deb8u7_amd64.deb &&" +
+      "wget http://ftp.de.debian.org/debian/pool/main/o/openssl/libssl1.0.0_1.0.1t-1+deb8u8_amd64.deb && " +
+      "dpkg -i libssl1.0.0_1.0.1t-1+deb8u8_amd64.deb && rm -rf libssl1.0.0_1.0.1t-1+deb8u8_amd64.deb &&" +
       "echo 'deb http://repos.mesosphere.io/ubuntu/ trusty main' > /etc/apt/sources.list.d/mesosphere.list && " +
       "apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF && " +
       "apt-get -y update && " +
