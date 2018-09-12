@@ -38,15 +38,16 @@ object Generators {
     value <- Gen.alphaStr
   } yield key -> value
 
-  val portRangeGen: Gen[PortRange] = for {
-    start <- Gen.chooseNum(0, 65534)
-    end <- Gen.chooseNum(start + 1, 65535)
-  } yield PortRange(start, end)
+  val portRangeListGen: Gen[List[PortRange]] = for {
+    rangeLimits <- Gen.listOf(Gen.chooseNum(0, 65534))
+    rangeLimitsSorted = rangeLimits.toSet.toList.sorted
+    ranges = rangeLimitsSorted.zip(rangeLimitsSorted.drop(1)).map{ case (start, end) => PortRange(start, end) }
+  } yield ranges
 
   val resourceGen: Gen[Resources] = for {
     cpus <- Gen.chooseNum(0.01, 40.0)
     mem <- Gen.chooseNum(100, 256000)
-    ports <- Gen.listOf(portRangeGen)
+    ports <- portRangeListGen
   } yield Resources(cpus, mem.megabytes, ports)
 
   implicit lazy val arbResources: Arbitrary[Resources] = Arbitrary(resourceGen)
