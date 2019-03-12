@@ -13,8 +13,10 @@ import mesos._
 import model._
 import model.serialization._
 import state._
-
 import java.util.UUID
+
+import akka.Done
+
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success, Try}
 import akka.actor.ActorSystem
@@ -29,7 +31,7 @@ import org.log4s._
 
 
 trait ApiBinding {
-  def unbind(): Future[Unit]
+  def unbind(): Future[Done]
 }
 
 class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSystem) extends JsonFormatters {
@@ -152,18 +154,14 @@ class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSy
   def bindLeaderApi(frameworkDriver: MesosFrameworkDriver): Future[ApiBinding] = {
     log.info(s"Binding leader API on ${bindEndpoint.address}:${bindEndpoint.port}")
     Http().bindAndHandle(leaderRoutes(frameworkDriver), bindEndpoint.address, bindEndpoint.port).map { binding =>
-      new ApiBinding {
-        override def unbind(): Future[Unit] = binding.unbind()
-      }
+      () => binding.unbind()
     }
   }
 
   def bindFollowerApi(leaderAddress: String, leaderPort: Int): Future[ApiBinding] = {
     log.info(s"Binding follower API proxy to $leaderAddress:$leaderPort on ${bindEndpoint.address}:${bindEndpoint.port}")
     Http().bindAndHandle(followerRoutes(leaderAddress, leaderPort), bindEndpoint.address, bindEndpoint.port).map { binding =>
-      new ApiBinding {
-        override def unbind(): Future[Unit] = binding.unbind()
-      }
+      () => binding.unbind()
     }
   }
 }
