@@ -199,7 +199,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       mapping.hostPort.map { hostPort =>
         val portNameContainer = s"PORT_${mapping.containerPort}"
         val portNameIdx = s"PORT$idx"
-        val portNameSpecific = mapping.name.map(name => s"PORT_${name.toUpperCase}")
+        val portNameSpecific = mapping.name.map(name => s"PORT_${envVarNameIllegalChars.replaceAllIn(name.toUpperCase, "_")}")
         val portNames = portNameContainer :: portNameIdx :: portNameSpecific.toList
         portNames.map(_ -> hostPort.toString)
       }.getOrElse(Nil)
@@ -207,7 +207,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
 
 
     val labelEnvVars = containerRun.definition.labels.getOrElse(Map.empty[String, String]).map { case (name, value) =>
-      val nameReplaced =  envVarNameIllegalChars.replaceAllIn(name.toUpperCase, "_")
+      val nameReplaced = envVarNameIllegalChars.replaceAllIn(name.toUpperCase, "_")
       ("SPRINT_LABEL_" + nameReplaced, value)
     }
 
