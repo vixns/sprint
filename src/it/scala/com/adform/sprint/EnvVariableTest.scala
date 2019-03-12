@@ -14,7 +14,7 @@ class EnvVariableTest extends FlatSpec with Matchers with Eventually with Integr
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(60, Seconds), interval = Span(2, Seconds))
 
-  "sprint" should "set environmental variables for labels" in withSprintInstance { sprint =>
+  "sprint" should "set environmental variables for labels and HOST" in withSprintInstance { sprint =>
 
     val run = ContainerRunDefinitions.hwWebServer.copy(labels = Some(Map(
       "name" -> "test",
@@ -49,6 +49,8 @@ class EnvVariableTest extends FlatSpec with Matchers with Eventually with Integr
 
     envVars.getOrElse("SPRINT_LABEL_NAME", "") shouldEqual "test"
     envVars.getOrElse("SPRINT_LABEL_W31RD___________", "") shouldEqual "aaaa!@#$%^&*()"
+
+    mesos.slaves.map(_.hostname) should contain (envVars.getOrElse("HOST", ""))
   }
 
 }

@@ -105,6 +105,7 @@ trait ContainerWithEndpoint extends Container {
   def ip: String
   def port: Int
   def endpoint: String = s"$ip:$port"
+  def hostname: String = id.take(12)
 }
 
 case class GenericContainer(id: String, name: String, ip: String, port: Int) extends ContainerWithEndpoint

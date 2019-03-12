@@ -211,8 +211,10 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       ("SPRINT_LABEL_" + nameReplaced, value)
     }
 
+    val hostEnvVar = "HOST" -> slaveHostname
+
     val environmentInfo = Environment.newBuilder()
-      .addAllVariables((containerEnvVars ++ portEnvVars ++ labelEnvVars).map(buildVariable).asJava)
+      .addAllVariables((containerEnvVars ++ portEnvVars ++ labelEnvVars ++ Seq(hostEnvVar)).map(buildVariable).asJava)
 
     val commandInfo = CommandInfo.newBuilder()
       .setShell(false)
