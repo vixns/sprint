@@ -6,7 +6,7 @@ import org.apache.mesos.Protos._
 import org.apache.mesos.{Protos, SchedulerDriver}
 import org.scalatest.{FunSpec, Matchers}
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 
 
 class MesosFrameworkManagerTest extends FunSpec with Matchers with MockitoSugar {

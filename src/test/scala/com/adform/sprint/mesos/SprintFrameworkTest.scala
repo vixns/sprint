@@ -10,13 +10,13 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.mesos.Protos.Value.{Scalar, Type}
 import org.apache.mesos.Protos._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{FunSpec, Matchers}
 import org.scalacheck.Arbitrary._
-import org.scalatest.prop._
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 
-class SprintFrameworkTest extends FunSpec with Matchers with MockitoSugar with PropertyChecks {
+class SprintFrameworkTest extends FunSpec with Matchers with MockitoSugar with ScalaCheckPropertyChecks {
 
   private val framework = new SprintFramework(mock[ContainerRunManager])
 
@@ -39,7 +39,7 @@ class SprintFrameworkTest extends FunSpec with Matchers with MockitoSugar with P
   }
 
   it("should correctly determine if offer meets constraints") {
-    forAll { (hostname: String) =>
+    forAll { hostname: String =>
 
       val offer = makeOffers(Resources.none, hostname)
 

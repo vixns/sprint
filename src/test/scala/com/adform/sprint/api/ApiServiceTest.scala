@@ -9,13 +9,13 @@ import state._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.{FunSpec, Matchers}
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.Mockito._
 import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 
-class ApiServiceTest extends FunSpec with Matchers with ScalatestRouteTest with MockitoSugar with PropertyChecks with JsonFormatters {
+class ApiServiceTest extends FunSpec with Matchers with ScalatestRouteTest with MockitoSugar with ScalaCheckPropertyChecks with JsonFormatters {
 
   describe("/status") {
 

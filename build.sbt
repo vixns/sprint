@@ -4,14 +4,14 @@ organizationName := "Adform"
 startYear := Some(2018)
 licenses += ("MPL-2.0", new URL("http://mozilla.org/MPL/2.0/"))
 
-scalaVersion  := "2.12.4"
+scalaVersion  := "2.12.8"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
-val akkaVersion = "2.5.9"
-val akkaHttpVersion = "10.0.11"
+val akkaVersion = "2.5.21"
+val akkaHttpVersion = "10.1.5"
 val curatorVersion = "2.12.0"
-val mesosVersion = "1.4.1"
-val zookeeperVersion = "3.4.8"
+val mesosVersion = "1.7.1"
+val zookeeperVersion = "3.4.13"
 val mesosPkgVersion = s"$mesosVersion-2.0.1"
 
 libraryDependencies ++= Seq(
@@ -23,18 +23,18 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"       %% "akka-http-spray-json"  % akkaHttpVersion,
   "org.apache.curator"       % "curator-framework"     % curatorVersion   exclude("log4j", "log4j"),
   "org.apache.curator"       % "curator-recipes"       % curatorVersion   exclude("log4j", "log4j"),
-  "com.typesafe"             % "config"                % "1.3.2",
-  "com.github.nscala-time"  %% "nscala-time"           % "2.18.0",
-  "org.log4s"               %% "log4s"                 % "1.4.0",
+  "com.typesafe"             % "config"                % "1.3.3",
+  "com.github.nscala-time"  %% "nscala-time"           % "2.22.0",
+  "org.log4s"               %% "log4s"                 % "1.7.0",
   "ch.qos.logback"           % "logback-classic"       % "1.2.3",
-  "org.slf4j"                % "log4j-over-slf4j"      % "1.7.25",
-  "org.scalatest"           %% "scalatest"             % "3.0.5"         % "test,it",
+  "org.slf4j"                % "log4j-over-slf4j"      % "1.7.26",
+  "org.scalatest"           %% "scalatest"             % "3.0.6"         % "test,it",
   "com.typesafe.akka"       %% "akka-http-testkit"     % akkaHttpVersion % "test",
-  "org.mockito"              % "mockito-core"          % "2.13.0"        % "test",
-  "org.scalacheck"          %% "scalacheck"            % "1.13.5"        % "test",
-  "org.scalaj"              %% "scalaj-http"           % "2.3.0"         % "it",
+  "org.mockito"              % "mockito-core"          % "2.25.0"        % "test",
+  "org.scalacheck"          %% "scalacheck"            % "1.14.0"        % "test",
+  "org.scalaj"              %% "scalaj-http"           % "2.4.1"         % "it",
   "net.liftweb"             %% "lift-json"             % "3.1.1"         % "it",
-  "com.spotify"              % "docker-client"         % "8.11.1"        % "it"
+  "com.spotify"              % "docker-client"         % "8.15.1"        % "it"
 )
 
 dependencyOverrides ++= Seq(
@@ -51,7 +51,7 @@ lazy val root = (project in file("."))
   .enablePlugins(BuildInfoPlugin)
 
 val zookeeperImage = settingKey[String]("Zookeeper image used in it tests")
-zookeeperImage := s"mesoscloud/zookeeper:$zookeeperVersion"
+zookeeperImage := s"zookeeper:$zookeeperVersion"
 
 val mesosMasterImage = settingKey[String]("Mesos master image used in it tests")
 mesosMasterImage := s"mesosphere/mesos-master:$mesosVersion"
@@ -72,8 +72,8 @@ dockerfile in docker := {
 
   new Dockerfile {
 
-    from("openjdk@sha256:0d0ec72a53493c39dea46964c26b182e4c04d3e10c2aa1da7040f9ca40305595") // 8u151-jre
-    runRaw("java -version 2>&1 | grep 1.8.0_151") // validate java version
+    from("openjdk@sha256:143e37a40011243684acf5e0cca99db04cf2675dae54aefcc464d616916dd27b") // 8u181-jre
+    runRaw("java -version 2>&1 | grep 1.8.0_181") // validate java version
 
     env("TERM" -> "xterm")
 
