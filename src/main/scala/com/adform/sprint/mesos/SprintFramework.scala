@@ -36,6 +36,7 @@ final case class PortRange(start: Int, end: Int) {
 
 final case class Resources(cpus: Double, memory: StorageUnit, ports: Seq[PortRange]) {
   def +(other: Resources) = Resources(cpus + other.cpus, memory + other.memory, ports ++ other.ports)
+
   def totalPortCount: Int = ports.map(_.portCount).sum
 }
 
@@ -44,12 +45,15 @@ object Resources {
 }
 
 sealed trait OfferResponse
+
 final case class LaunchTasks(offers: Seq[Offer], tasks: Seq[TaskInfo]) extends OfferResponse
+
 final case class DeclineOffers(offers: Seq[Offer]) extends OfferResponse
 
 
 trait Framework {
   def considerOffers(offers: Seq[Offer]): Future[Seq[OfferResponse]]
+
   def updateTask(status: TaskStatus): Future[Option[ContainerRun]]
 }
 
@@ -72,12 +76,11 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
             if (run.state != ContainerRunState.WaitingForOffers)
               containerRunManager.updateContainerRunState(id = run.id, state = ContainerRunState.WaitingForOffers)
           case (runOffers, Some(run)) =>
-            val (task, jobNetwork) = makeTask(run, runOffers)
+            val task = makeTask(run, runOffers)
             frameworkResponse += LaunchTasks(runOffers, List(task))
             containerRunManager.updateContainerRunStateAndNetworking(
               id = run.id,
-              state = ContainerRunState.Submitted,
-              network = jobNetwork
+              state = ContainerRunState.Submitted
             )
           case (unmatchedOffers, None) =>
             if (unmatchedOffers.nonEmpty)
@@ -100,7 +103,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
   }
 
   def matchOffers(offers: Seq[Offer], runs: Seq[ContainerRun]): Map[Seq[Offer], Option[ContainerRun]] = {
-    
+
     @tailrec
     def matchOffersRecursive(offers: Seq[Offer], runs: Seq[ContainerRun], matched: Map[Seq[Offer], Option[ContainerRun]]): Map[Seq[Offer], Option[ContainerRun]] = {
       runs match {
@@ -122,7 +125,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
     }
   }
 
-  def makeTask(containerRun: ContainerRun, offers: Seq[Offer]): (TaskInfo, Network) = {
+  def makeTask(containerRun: ContainerRun, offers: Seq[Offer]): TaskInfo = {
 
     assert(offers.nonEmpty && offers.forall(o => o.getSlaveId.getValue == offers.head.getSlaveId.getValue))
     val slaveId = offers.head.getSlaveId
@@ -178,7 +181,6 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         .setImage(containerRun.definition.container.docker.image)
         .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
         .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
-        .setNetwork(DockerInfo.Network.BRIDGE)
 
       if (portMappings.nonEmpty) {
         log.debug(s"Mapping ${portMappings.length} ports")
@@ -194,6 +196,20 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         case ContainerType.Docker => ContainerInfo.Type.DOCKER
         case _ => ContainerInfo.Type.MESOS
       })
+
+    if (containerRun.definition.networks.nonEmpty) {
+      val networks: List[NetworkInfo] = containerRun.definition.networks match {
+        case None => List.empty
+        case Some(nets) => nets
+          .map(n => NetworkInfo.newBuilder()
+            .setName(n.name)
+            .setLabels(createLabels(n.labels))
+            .build()
+          )
+      }
+      containerInfo.addAllNetworkInfos(networks.asJava)
+    }
+    containerInfo.build()
 
     val containerEnvVars = containerRun.definition.env.getOrElse(Map.empty[String, String])
 
@@ -236,14 +252,24 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       .setName(taskName)
       .setTaskId(TaskID.newBuilder().setValue(containerRun.id.toString).build())
       .setSlaveId(slaveId)
-      .addResources(buildScalarResource("cpus", containerRun.definition.cpus.getOrElse(0.1)))
-      .addResources(buildScalarResource("mem", containerRun.definition.mem.getOrElse(100L).toDouble))
+      .addResources(buildScalarResource("cpus", containerRun.definition.cpus.getOrElse(0.001)))
+      .addResources(buildScalarResource("mem", containerRun.definition.mem.getOrElse(32L).toDouble))
 
     usedPorts.foreach { usedPort =>
       taskInfo.addResources(buildRangesResource("ports", usedPort, usedPort))
     }
 
-    (taskInfo.build(), Network(slaveHostname, if (portMappings.nonEmpty) Some(portMappings) else None))
+    taskInfo.build()
+  }
+
+  def createLabels(labels: Option[Map[String, String]]): Labels = {
+    val ret = Labels.newBuilder()
+    labels match {
+      case None =>
+      case Some(lbs) => lbs.map(l =>
+        ret.addLabels(Label.newBuilder().setKey(l._1).setValue(l._2).build()))
+    }
+    ret.build()
   }
 
   // Given all available ports from offers, create updated port mappings. Also, return a list of used ports.

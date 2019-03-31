@@ -33,17 +33,17 @@ case class ContainerRunDefinition(
   mem: Option[Long],
   env: Option[Map[String, String]],
   labels: Option[Map[String, String]],
-  constraints: Option[List[Constraint]]
+  constraints: Option[List[Constraint]],
+  networks: Option[List[Network]]
 )
 
-case class Network(host: String, portMappings: Option[List[PortMapping]])
+case class Network(name: String, labels: Option[Map[String, String]])
 
 case class ContainerRun(
    id: UUID,
    state: ContainerRunState,
    lastModified: DateTime,
-   definition: ContainerRunDefinition,
-   network: Option[Network]
+   definition: ContainerRunDefinition
 )
 case class ContainerRunList(runs: List[ContainerRun])
 
