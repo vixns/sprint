@@ -40,9 +40,11 @@ trait JsonFormatters extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object ContainerTypeJsonFormat extends RootJsonFormat[ContainerType] {
     def write(s: ContainerType): JsString = s match {
       case ContainerType.Docker => JsString("DOCKER")
+      case ContainerType.Mesos => JsString("MESOS")
     }
-    def read(value: JsValue): ContainerType.Docker.type = value match {
+    def read(value: JsValue): ContainerType = value match {
       case JsString("DOCKER") => ContainerType.Docker
+      case JsString("MESOS") => ContainerType.Mesos
       case JsString(s) => throw DeserializationException(s"Unsupported container type $s")
       case _ => throw DeserializationException("Could not deserialize container type")
     }

@@ -190,8 +190,10 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
 
     val containerInfo = ContainerInfo.newBuilder()
       .setDocker(dockerInfo)
-      .setType(ContainerInfo.Type.DOCKER)
-      .build()
+      .setType(containerRun.definition.container.`type` match {
+        case ContainerType.Docker => ContainerInfo.Type.DOCKER
+        case _ => ContainerInfo.Type.MESOS
+      })
 
     val containerEnvVars = containerRun.definition.env.getOrElse(Map.empty[String, String])
 
