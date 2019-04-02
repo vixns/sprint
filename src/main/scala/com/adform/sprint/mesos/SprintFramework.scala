@@ -182,6 +182,12 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
         .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
 
+      if (containerRun.definition.container.`type`.equals(ContainerType.Docker))
+        if (containerRun.definition.networks.nonEmpty)
+          builder.setNetwork(DockerInfo.Network.USER)
+        else
+          builder.setNetwork(DockerInfo.Network.BRIDGE)
+
       if (portMappings.nonEmpty) {
         log.debug(s"Mapping ${portMappings.length} ports")
         builder.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
