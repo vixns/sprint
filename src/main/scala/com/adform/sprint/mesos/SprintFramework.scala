@@ -76,11 +76,12 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
             if (run.state != ContainerRunState.WaitingForOffers)
               containerRunManager.updateContainerRunState(id = run.id, state = ContainerRunState.WaitingForOffers)
           case (runOffers, Some(run)) =>
-            val task = makeTask(run, runOffers)
+            val (task, jobNetwork) = makeTask(run, runOffers)
             frameworkResponse += LaunchTasks(runOffers, List(task))
             containerRunManager.updateContainerRunStateAndNetworking(
               id = run.id,
-              state = ContainerRunState.Submitted
+              state = ContainerRunState.Submitted,
+              network = jobNetwork
             )
           case (unmatchedOffers, None) =>
             if (unmatchedOffers.nonEmpty)
@@ -125,7 +126,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
     }
   }
 
-  def makeTask(containerRun: ContainerRun, offers: Seq[Offer]): TaskInfo = {
+  def makeTask(containerRun: ContainerRun, offers: Seq[Offer]): (TaskInfo, HostNetwork) = {
 
     assert(offers.nonEmpty && offers.forall(o => o.getSlaveId.getValue == offers.head.getSlaveId.getValue))
     val slaveId = offers.head.getSlaveId
@@ -274,7 +275,8 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       taskInfo.addResources(buildRangesResource("ports", usedPort, usedPort))
     }
 
-    taskInfo.build()
+    (taskInfo.build(),
+      HostNetwork(slaveHostname, if (portMappings.nonEmpty) Some(portMappings) else None))
   }
 
   def createLabels(labels: Option[Map[String, String]]): Labels = {
