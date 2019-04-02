@@ -38,12 +38,14 @@ case class ContainerRunDefinition(
 )
 
 case class Network(name: String, portMappings: Option[List[PortMapping]], labels: Option[Map[String, String]])
+case class HostNetwork(host: String, portMappings: Option[List[PortMapping]])
 
 case class ContainerRun(
    id: UUID,
    state: ContainerRunState,
    lastModified: DateTime,
-   definition: ContainerRunDefinition
+   definition: ContainerRunDefinition,
+   network: Option[HostNetwork]
 )
 case class ContainerRunList(runs: List[ContainerRun])
 
