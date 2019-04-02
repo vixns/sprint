@@ -12,6 +12,7 @@ object ContainerRunDefinitions {
     None,
     None,
     None,
+    None,
     None
   )
 
@@ -20,6 +21,7 @@ object ContainerRunDefinitions {
     None,
     None,
     ContainerDefinition(DockerDefinition("crccheck/hello-world", None, None), ContainerType.Docker, None),
+    None,
     None,
     None,
     None,
