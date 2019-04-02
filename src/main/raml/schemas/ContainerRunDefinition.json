@@ -59,7 +59,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["DOCKER"]
+          "enum": ["DOCKER","MESOS"]
         },
         "portMappings": {
           "type": "array",

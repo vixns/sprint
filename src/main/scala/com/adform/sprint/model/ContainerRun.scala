@@ -17,6 +17,7 @@ import org.joda.time.DateTime
 sealed trait ContainerType
 object ContainerType {
   case object Docker extends ContainerType
+  case object Mesos extends ContainerType
 }
 
 case class PortMapping(containerPort: Int, hostPort: Option[Int], name: Option[String])

@@ -190,8 +190,11 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
 
     val containerInfo = ContainerInfo.newBuilder()
       .setDocker(dockerInfo)
-      .setType(ContainerInfo.Type.DOCKER)
-      .build()
+      .setType(containerRun.definition.container.`type` match {
+        case ContainerType.Docker => ContainerInfo.Type.DOCKER
+        case ContainerType.Mesos => ContainerInfo.Type.MESOS
+        case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
+      })
 
     val containerEnvVars = containerRun.definition.env.getOrElse(Map.empty[String, String])
 
