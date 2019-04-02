@@ -229,11 +229,19 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       val networks: List[NetworkInfo] = containerRun.definition.networks match {
         case None => List.empty
         case Some(nets) => nets
-          .map(n => NetworkInfo.newBuilder()
-            .setName(n.name)
-            .setLabels(createLabels(n.labels))
-            .build()
-          )
+          .map(n => {
+            val net = NetworkInfo.newBuilder()
+              .setName(n.name)
+              .setLabels(createLabels(n.labels))
+            n.portMappings.getOrElse(List.empty).map(p => net.addPortMappings(
+              NetworkInfo.PortMapping.newBuilder()
+                .setProtocol(p.protocol)
+                .setContainerPort(p.containerPort)
+                .setHostPort(p.hostPort.getOrElse(0))
+                .build()
+            ))
+            net.build()
+          })
       }
       containerInfo.addAllNetworkInfos(networks.asJava)
     }
