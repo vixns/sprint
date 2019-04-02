@@ -200,7 +200,8 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       .setDocker(dockerInfo)
       .setType(containerRun.definition.container.`type` match {
         case ContainerType.Docker => ContainerInfo.Type.DOCKER
-        case _ => ContainerInfo.Type.MESOS
+        case ContainerType.Mesos => ContainerInfo.Type.MESOS
+        case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
       })
 
     if (containerRun.definition.networks.nonEmpty) {
