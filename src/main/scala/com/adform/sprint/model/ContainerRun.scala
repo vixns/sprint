@@ -34,6 +34,13 @@ object SecretType {
   case object Reference extends SecretType
 }
 
+sealed trait SourceType
+object SourceType {
+  case object HostPath extends SourceType
+  case object SandboxPath extends SourceType
+  case object Secret extends SourceType
+}
+
 case class SecretReference(name: String, key: String)
 
 case class Secret(`type`: SecretType, value: Option[String], reference: Option[SecretReference])
@@ -43,8 +50,13 @@ case class Environment(name: String, value: Option[String], secret: Option[Secre
 case class Uri(value: String, output_file: Option[String], executable: Boolean = false,
                extract: Boolean = true, cache: Boolean = false)
 
-case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, 
-                               portMappings: Option[List[PortMapping]], environment: Option[List[Environment]])
+case class VolumeSource(`type`: SourceType, path: Option[String], secret: Option[Secret])
+
+case class Volume(path: String, source: VolumeSource, mode: String = "RW")
+
+case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType,
+                               portMappings: Option[List[PortMapping]], environment: Option[List[Environment]],
+                               volumes: Option[List[Volume]])
 case class DockerDefinition(image: String, forcePullImage: Option[Boolean], parameters: Option[List[Parameter]])
 
 case class ContainerRunDefinition(

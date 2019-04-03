@@ -32,7 +32,8 @@ object Generators {
     parameters <- Gen.option(Gen.listOf(parameterGen))
     portMappings <- Gen.option(Gen.listOf(portMappingGen))
     envList <- Gen.option(Gen.listOf(envGen))
-  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker, portMappings, envList)
+    volumes <- Gen.option(Gen.listOf(volumeGen))
+  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker, portMappings, envList, volumes)
   val secretGen: Gen[Secret] = for {
     secretType <- Gen.oneOf(SecretType.Value, SecretType.Reference)
     value <- Gen.some(Gen.alphaStr)
@@ -51,6 +52,14 @@ object Generators {
     key <- Gen.listOfN(Gen.chooseNum(3, 10).sample.get, Gen.alphaChar).map(_.mkString)
     value <- Gen.alphaStr
   } yield key -> value
+
+  val volumeGen: Gen[Volume] = for {
+    container_path <- Gen.alphaStr
+    path <- Gen.some(Gen.alphaStr)
+    mode <- Gen.oneOf("RW", "RO")
+    sourceType <- Gen.oneOf(SourceType.HostPath, SourceType.Secret, SourceType.SandboxPath)
+    secret <- Gen.some(secretGen)
+  } yield Volume(container_path, VolumeSource(sourceType, path, secret), mode)
 
   val portRangeListGen: Gen[List[PortRange]] = for {
     rangeLimits <- Gen.listOf(Gen.chooseNum(0, 65534))

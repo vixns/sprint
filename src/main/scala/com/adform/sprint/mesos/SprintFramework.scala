@@ -14,6 +14,7 @@ import model.{Parameter => SParameter, PortMapping => SPortMapping, _}
 import model.StorageUnit.conversions._
 import java.util.UUID
 
+import com.google.protobuf.ByteString
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,6 +23,7 @@ import org.apache.mesos.Protos.{Parameter => MParameter, _}
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.PortMapping
 import org.apache.mesos.Protos.Environment.Variable
+import org.apache.mesos.Protos.Volume.Source.SandboxPath
 import org.log4s._
 
 import scala.annotation.tailrec
@@ -218,7 +220,50 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       }
 
       builder.build()
+    val volumes: List[org.apache.mesos.Protos.Volume] = containerRun.definition.container.volumes match {
+      case None => List.empty
+      case Some(vols) =>
+        vols.map(n => {
+          val source = n.source.`type` match {
+            case SourceType.HostPath =>
+              Protos.Volume.Source.newBuilder()
+                .setType(Protos.Volume.Source.Type.HOST_PATH)
+                .setHostPath(Protos.Volume.Source.HostPath.newBuilder()
+                  .setPath(n.source.path.get))
+            case SourceType.SandboxPath =>
+              Protos.Volume.Source.newBuilder()
+                .setType(Protos.Volume.Source.Type.SANDBOX_PATH)
+                .setSandboxPath(Protos.Volume.Source.SandboxPath.newBuilder()
+                  .setType(SandboxPath.Type.SELF)
+                  .setPath(n.source.path.get))
+            case SourceType.Secret =>
+              Protos.Volume.Source.newBuilder()
+                .setType(Protos.Volume.Source.Type.SECRET)
+                .setSecret(n.source.secret.get.`type` match {
+                  case SecretType.Value =>
+                    Protos.Secret.newBuilder()
+                      .setType(Protos.Secret.Type.VALUE)
+                      .setValue(Protos.Secret.Value.newBuilder()
+                        .setData(ByteString.copyFromUtf8(n.source.secret.get.value.get)))
+                  case SecretType.Reference =>
+                    Protos.Secret.newBuilder()
+                      .setType(Protos.Secret.Type.REFERENCE)
+                      .setReference(Protos.Secret.Reference.newBuilder()
+                        .setName(n.source.secret.get.reference.get.name)
+                        .setKey(n.source.secret.get.reference.get.key)
+                      )
+                })
+            case _ => throw new IllegalArgumentException("Volume source type must be HOST, SANDBOX or SECRET")
+          }
+
+          Protos.Volume.newBuilder()
+            .setMode(n.mode match { case "RW" => Protos.Volume.Mode.RW case _ => Protos.Volume.Mode.RO })
+            .setContainerPath(n.path)
+            .setSource(source)
+            .build()
+        })
     }
+    containerInfo.addAllVolumes(volumes.asJava)
 
     val containerInfo = ContainerInfo.newBuilder()
       .setDocker(dockerInfo)

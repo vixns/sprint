@@ -32,6 +32,7 @@ trait JsonFormatters extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val networkFormat = jsonFormat3(Network)
   implicit val hostNetworkFormat = jsonFormat2(HostNetwork)
   implicit val uriFormat: RootJsonFormat[Uri] = jsonFormat5(Uri)
+  implicit val volumeFormat: RootJsonFormat[Volume] = jsonFormat3(Volume)
   implicit val containerDefinition = jsonFormat3(ContainerDefinition)
   implicit val containerRunDefinitionFormat = jsonFormat9(ContainerRunDefinition)
   implicit val containerRunFormat = jsonFormat5(ContainerRun)
@@ -145,6 +146,42 @@ trait JsonFormatters extends SprayJsonSupport with DefaultJsonProtocol {
       val n = e("name").convertTo[String]
       if (e.contains("value")) Environment(n, Option(e("value").convertTo[String]), None)
       else Environment(n, None, Option(e("secret").convertTo[Secret]))
+    }
+  }
+
+  implicit object SourceTypeJsonFormat extends RootJsonFormat[SourceType] {
+    def write(s: SourceType): JsString = s match {
+      case SourceType.SandboxPath => JsString("SANDBOX")
+      case SourceType.HostPath => JsString("HOST")
+      case SourceType.Secret => JsString("SECRET")
+    }
+
+    def read(value: JsValue): SourceType = value match {
+      case JsString("SANDBOX") => SourceType.SandboxPath
+      case JsString("HOST") => SourceType.HostPath
+      case JsString("SECRET") => SourceType.Secret
+      case JsString(s) => throw DeserializationException(s"Unsupported source type $s")
+      case _ => throw DeserializationException(s"Could not deserialize source type $value")
+    }
+  }
+  implicit object VolumeSourceJsonFormat extends RootJsonFormat[VolumeSource] {
+    def write(s: VolumeSource): JsObject = s.`type` match {
+      case SourceType.Secret => JsObject(
+        "type" -> SourceTypeJsonFormat.write(s.`type`),
+        "secret" -> s.secret.get.toJson(SecretJsonFormat).asJsObject)
+      case _ => JsObject(
+          "type" -> SourceTypeJsonFormat.write(s.`type`),
+          "path" -> JsString(s.path.get))
+    }
+
+    def read(value: JsValue): VolumeSource = value match {
+      case JsObject(s) =>
+        val t = s("type").convertTo[SourceType]
+        t match {
+          case SourceType.Secret => VolumeSource(t, None, Option(s("secret").convertTo[Secret]))
+          case _ => VolumeSource(t, Option(s("path").convertTo[String]), None)
+        }
+      case _ => throw DeserializationException("Can't deserialize a VolumeSource")
     }
   }
 }
