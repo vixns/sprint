@@ -10,6 +10,7 @@ package com.adform.sprint
 package model
 
 import java.util.UUID
+
 import org.apache.mesos.Protos.TaskState
 import org.joda.time.DateTime
 
