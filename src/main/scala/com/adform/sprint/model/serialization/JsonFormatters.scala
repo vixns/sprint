@@ -31,6 +31,7 @@ trait JsonFormatters extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val portMappingFormat = jsonFormat4(PortMapping)
   implicit val networkFormat = jsonFormat3(Network)
   implicit val hostNetworkFormat = jsonFormat2(HostNetwork)
+  implicit val uriFormat: RootJsonFormat[Uri] = jsonFormat5(Uri)
   implicit val containerDefinition = jsonFormat3(ContainerDefinition)
   implicit val containerRunDefinitionFormat = jsonFormat9(ContainerRunDefinition)
   implicit val containerRunFormat = jsonFormat5(ContainerRun)

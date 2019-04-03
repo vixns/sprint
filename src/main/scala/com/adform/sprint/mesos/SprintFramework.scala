@@ -261,6 +261,12 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
     if (containerRun.definition.cmd.isDefined)
       commandInfo.setValue(containerRun.definition.cmd.get)
 
+    if (containerRun.definition.uris.isDefined)
+      commandInfo.addAllUris(containerRun.definition.uris.get
+        .map(u => CommandInfo.URI.newBuilder()
+          .setValue(u.value).setOutputFile(u.output_file.getOrElse(""))
+          .setExecutable(u.executable).setExtract(u.extract).setCache(u.cache).build).asJava)
+
     val taskName = containerRun.definition.labels.flatMap(l => l.get("name")).getOrElse(containerRun.id.toString)
     val taskInfo = TaskInfo.newBuilder()
       .setCommand(commandInfo.build())

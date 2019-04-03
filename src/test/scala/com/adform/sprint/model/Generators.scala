@@ -69,6 +69,11 @@ object Generators {
     portMappings <- Gen.option(Gen.listOf(portMappingGen))
   } yield HostNetwork(hostname, portMappings)
 
+  val uriGen: Gen[Uri] = for {
+    value <- Gen.alphaStr
+    output_file <- Gen.option(Gen.alphaStr)
+  } yield Uri(value, output_file)
+
   val containerRunDefinitionGen: Gen[ContainerRunDefinition] = for {
     cmd <- Gen.option(Gen.alphaStr)
     args <- Gen.option(Gen.listOf(Gen.alphaStr))
@@ -77,10 +82,11 @@ object Generators {
     cpus <- Gen.option(resources.cpus)
     mem <- Gen.option(resources.memory.inMegabytes)
     env <- Gen.option(Gen.mapOf(kvGen))
+    uris <- Gen.option(Gen.listOf(uriGen))
     labels <- Gen.option(Gen.mapOf(kvGen))
     constraints <- Gen.option(Gen.listOf(constraintGen))
     networks <- Gen.option(Gen.listOf(networkGen))
-  } yield ContainerRunDefinition(cmd, args, container, cpus, mem, env, labels, constraints, networks)
+  } yield ContainerRunDefinition(cmd, args, container, cpus, mem, env, uris, labels, constraints, networks)
 
   implicit lazy val arbContainerRunDefinition: Arbitrary[ContainerRunDefinition] = Arbitrary(containerRunDefinitionGen)
 

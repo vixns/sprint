@@ -125,7 +125,7 @@ class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSy
     val flow = Http(system).outgoingConnection(destAddress, destPort)
     val proxyRequest = HttpRequest(
       method = context.request.method,
-      uri = Uri.from(path = context.request.uri.path.toString),
+      uri = akka.http.scaladsl.model.Uri.from(path = context.request.uri.path.toString),
       entity = context.request.entity
     )
     val handler = Source.single(proxyRequest)

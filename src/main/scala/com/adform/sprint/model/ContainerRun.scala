@@ -23,6 +23,10 @@ object ContainerType {
 case class PortMapping(containerPort: Int, hostPort: Option[Int], name: Option[String], protocol: String = "tcp")
 
 case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, portMappings: Option[List[PortMapping]])
+
+case class Uri(value: String, output_file: Option[String], executable: Boolean = false,
+               extract: Boolean = true, cache: Boolean = false)
+
 case class DockerDefinition(image: String, forcePullImage: Option[Boolean], parameters: Option[List[Parameter]])
 
 case class ContainerRunDefinition(
@@ -32,6 +36,7 @@ case class ContainerRunDefinition(
   cpus: Option[Double],
   mem: Option[Long],
   env: Option[Map[String, String]],
+  uris: Option[List[Uri]],
   labels: Option[Map[String, String]],
   constraints: Option[List[Constraint]],
   networks: Option[List[Network]]
