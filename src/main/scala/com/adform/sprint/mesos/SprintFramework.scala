@@ -15,12 +15,14 @@ import model.StorageUnit.conversions._
 import java.util.UUID
 
 import com.google.protobuf.ByteString
+import org.apache.mesos.Protos
+
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import org.apache.mesos.Protos.{Parameter => MParameter, _}
-import org.apache.mesos.Protos.ContainerInfo.DockerInfo
+import org.apache.mesos.Protos.ContainerInfo.{DockerInfo, MesosInfo}
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.PortMapping
 import org.apache.mesos.Protos.Environment.Variable
 import org.apache.mesos.Protos.Volume.Source.SandboxPath
@@ -202,24 +204,35 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       .map(mappings => createPortMappings(mappings, availablePorts.toList))
       .getOrElse((List.empty, List.empty))
 
-    val dockerInfo = {
-      val builder = DockerInfo.newBuilder()
-        .setImage(containerRun.definition.container.docker.image)
-        .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
-        .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
+    val containerInfo = ContainerInfo.newBuilder()
 
-      if (containerRun.definition.container.`type`.equals(ContainerType.Docker))
+    containerRun.definition.container.`type` match {
+      case ContainerType.Docker =>
+        val dockerInfo = DockerInfo.newBuilder()
+          .setImage(containerRun.definition.container.docker.image)
+          .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
+          .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
+
         if (containerRun.definition.container.networks.nonEmpty)
-          builder.setNetwork(DockerInfo.Network.USER)
+          dockerInfo.setNetwork(DockerInfo.Network.USER)
         else
-          builder.setNetwork(DockerInfo.Network.BRIDGE)
+          dockerInfo.setNetwork(DockerInfo.Network.BRIDGE)
 
-      if (portMappings.nonEmpty) {
-        log.debug(s"Mapping ${portMappings.length} ports")
-        builder.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
-      }
+        if (portMappings.nonEmpty) {
+          log.debug(s"Mapping ${portMappings.length} ports")
+          dockerInfo.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
+        }
+        containerInfo.setType(ContainerInfo.Type.DOCKER).setDocker(dockerInfo)
+      case ContainerType.Mesos =>
+        containerInfo.setType(ContainerInfo.Type.MESOS).setMesos(MesosInfo.newBuilder()
+          .setImage(Image.newBuilder()
+            .setCached(!containerRun.definition.container.docker.forcePullImage.getOrElse(false))
+            .setType(Image.Type.DOCKER)
+            .setDocker(Image.Docker.newBuilder()
+              .setName(containerRun.definition.container.docker.image))))
+      case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
+    }
 
-      builder.build()
     val volumes: List[org.apache.mesos.Protos.Volume] = containerRun.definition.container.volumes match {
       case None => List.empty
       case Some(vols) =>
@@ -264,14 +277,6 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         })
     }
     containerInfo.addAllVolumes(volumes.asJava)
-
-    val containerInfo = ContainerInfo.newBuilder()
-      .setDocker(dockerInfo)
-      .setType(containerRun.definition.container.`type` match {
-        case ContainerType.Docker => ContainerInfo.Type.DOCKER
-        case ContainerType.Mesos => ContainerInfo.Type.MESOS
-        case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
-      })
 
     if (containerRun.definition.container.networks.nonEmpty) {
       val networks: List[NetworkInfo] = containerRun.definition.container.networks match {
