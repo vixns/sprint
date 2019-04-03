@@ -19,7 +19,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import org.apache.mesos.Protos.{Parameter => MParameter, _}
-import org.apache.mesos.Protos.ContainerInfo.DockerInfo
+import org.apache.mesos.Protos.ContainerInfo.{DockerInfo, MesosInfo}
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.PortMapping
 import org.apache.mesos.Protos.Environment.Variable
 import org.log4s._
@@ -173,28 +173,31 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       .map(mappings => createPortMappings(mappings, availablePorts.toList))
       .getOrElse((List.empty, List.empty))
 
-    val dockerInfo = {
-      val builder = DockerInfo.newBuilder()
-        .setImage(containerRun.definition.container.docker.image)
-        .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
-        .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
-        .setNetwork(DockerInfo.Network.BRIDGE)
-
-      if (portMappings.nonEmpty) {
-        log.debug(s"Mapping ${portMappings.length} ports")
-        builder.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
-      }
-
-      builder.build()
-    }
-
     val containerInfo = ContainerInfo.newBuilder()
-      .setDocker(dockerInfo)
-      .setType(containerRun.definition.container.`type` match {
-        case ContainerType.Docker => ContainerInfo.Type.DOCKER
-        case ContainerType.Mesos => ContainerInfo.Type.MESOS
-        case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
-      })
+
+    containerRun.definition.container.`type` match {
+      case ContainerType.Docker =>
+        val dockerInfo  = DockerInfo.newBuilder()
+          .setImage(containerRun.definition.container.docker.image)
+          .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
+          .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
+          .setNetwork(DockerInfo.Network.BRIDGE)
+
+        if (portMappings.nonEmpty) {
+          log.debug(s"Mapping ${portMappings.length} ports")
+          dockerInfo.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
+        }
+        containerInfo.setType(ContainerInfo.Type.DOCKER).setDocker(dockerInfo)
+      case ContainerType.Mesos =>
+        val mesosInfo = MesosInfo.newBuilder()
+          .setImage(Image.newBuilder()
+            .setCached(!containerRun.definition.container.docker.forcePullImage.getOrElse(false))
+            .setType(Image.Type.DOCKER)
+            .setDocker(Image.Docker.newBuilder()
+              .setName(containerRun.definition.container.docker.image)))
+        containerInfo.setType(ContainerInfo.Type.MESOS).setMesos(mesosInfo)
+      case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
+    }
 
     val containerEnvVars = containerRun.definition.env.getOrElse(Map.empty[String, String])
 
