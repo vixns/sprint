@@ -209,7 +209,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
 
       if (containerRun.definition.container.`type`.equals(ContainerType.Docker))
-        if (containerRun.definition.networks.nonEmpty)
+        if (containerRun.definition.container.networks.nonEmpty)
           builder.setNetwork(DockerInfo.Network.USER)
         else
           builder.setNetwork(DockerInfo.Network.BRIDGE)
@@ -273,8 +273,8 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
       })
 
-    if (containerRun.definition.networks.nonEmpty) {
-      val networks: List[NetworkInfo] = containerRun.definition.networks match {
+    if (containerRun.definition.container.networks.nonEmpty) {
+      val networks: List[NetworkInfo] = containerRun.definition.container.networks match {
         case None => List.empty
         case Some(nets) => nets
           .map(n => {

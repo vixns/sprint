@@ -54,7 +54,7 @@ case class VolumeSource(`type`: SourceType, path: Option[String], secret: Option
 
 case class Volume(path: String, source: VolumeSource, mode: String = "RW")
 
-case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType,
+case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, networks: Option[List[Network]],
                                portMappings: Option[List[PortMapping]], environment: Option[List[Environment]],
                                volumes: Option[List[Volume]])
 case class DockerDefinition(image: String, forcePullImage: Option[Boolean], parameters: Option[List[Parameter]])
@@ -68,8 +68,7 @@ case class ContainerRunDefinition(
   env: Option[List[Environment]],
   uris: Option[List[Uri]],
   labels: Option[Map[String, String]],
-  constraints: Option[List[Constraint]],
-  networks: Option[List[Network]]
+  constraints: Option[List[Constraint]]
 )
 
 case class Network(name: String, portMappings: Option[List[PortMapping]], labels: Option[Map[String, String]])

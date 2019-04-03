@@ -26,14 +26,6 @@ object Generators {
     name <- Gen.option(Gen.alphaStr)
   } yield PortMapping(containerPort, hostPort, name)
 
-  val containerDefinitionGen: Gen[ContainerDefinition] = for {
-    image <- imageGen
-    forcePull <- Gen.option(Gen.oneOf(true, false))
-    parameters <- Gen.option(Gen.listOf(parameterGen))
-    portMappings <- Gen.option(Gen.listOf(portMappingGen))
-    envList <- Gen.option(Gen.listOf(envGen))
-    volumes <- Gen.option(Gen.listOf(volumeGen))
-  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker, portMappings, envList, volumes)
   val secretGen: Gen[Secret] = for {
     secretType <- Gen.oneOf(SecretType.Value, SecretType.Reference)
     value <- Gen.some(Gen.alphaStr)
@@ -53,6 +45,12 @@ object Generators {
     value <- Gen.alphaStr
   } yield key -> value
 
+  val networkGen: Gen[Network] = for {
+    name <- Gen.alphaStr
+    portMappings <- Gen.option(Gen.listOf(portMappingGen))
+    labels <- Gen.option(Gen.mapOf(kvGen))
+  } yield Network(name, portMappings, labels)
+
   val volumeGen: Gen[Volume] = for {
     container_path <- Gen.alphaStr
     path <- Gen.some(Gen.alphaStr)
@@ -61,10 +59,23 @@ object Generators {
     secret <- Gen.some(secretGen)
   } yield Volume(container_path, VolumeSource(sourceType, path, secret), mode)
 
+  val containerDefinitionGen: Gen[ContainerDefinition] = for {
+    image <- imageGen
+    forcePull <- Gen.option(Gen.oneOf(true, false))
+    parameters <- Gen.option(Gen.listOf(parameterGen))
+    portMappings <- Gen.option(Gen.listOf(portMappingGen))
+    containerType <- Gen.oneOf(ContainerType.Docker, ContainerType.Mesos)
+    envList <- Gen.option(Gen.listOf(envGen))
+    networks <- Gen.option(Gen.listOf(networkGen))
+    volumes <- Gen.option(Gen.listOf(volumeGen))
+  } yield ContainerDefinition(
+    DockerDefinition(image, forcePull, parameters),
+    containerType, networks, portMappings, envList, volumes)
+
   val portRangeListGen: Gen[List[PortRange]] = for {
     rangeLimits <- Gen.listOf(Gen.chooseNum(0, 65534))
     rangeLimitsSorted = rangeLimits.toSet.toList.sorted
-    ranges = rangeLimitsSorted.zip(rangeLimitsSorted.drop(1)).map{ case (start, end) => PortRange(start, end) }
+    ranges = rangeLimitsSorted.zip(rangeLimitsSorted.drop(1)).map { case (start, end) => PortRange(start, end) }
   } yield ranges
 
   val resourceGen: Gen[Resources] = for {
@@ -80,12 +91,6 @@ object Generators {
     arg <- Gen.alphaStr
     constraint <- Gen.oneOf(LikeConstraint.apply _, UnlikeConstraint.apply _)
   } yield constraint(field, arg)
-
-  val networkGen: Gen[Network] = for {
-    name <- Gen.alphaStr
-    portMappings <- Gen.option(Gen.listOf(portMappingGen))
-    labels <- Gen.option(Gen.mapOf(kvGen))
-  } yield Network(name, portMappings, labels)
 
   val hostNetworkGen: Gen[HostNetwork] = for {
     hostname <- Gen.alphaStr
@@ -108,8 +113,7 @@ object Generators {
     uris <- Gen.option(Gen.listOf(uriGen))
     labels <- Gen.option(Gen.mapOf(kvGen))
     constraints <- Gen.option(Gen.listOf(constraintGen))
-    networks <- Gen.option(Gen.listOf(networkGen))
-  } yield ContainerRunDefinition(cmd, args, container, cpus, mem, env, uris, labels, constraints, networks)
+  } yield ContainerRunDefinition(cmd, args, container, cpus, mem, env, uris, labels, constraints)
 
   implicit lazy val arbContainerRunDefinition: Arbitrary[ContainerRunDefinition] = Arbitrary(containerRunDefinitionGen)
 
