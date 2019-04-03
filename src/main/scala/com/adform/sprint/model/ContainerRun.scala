@@ -22,11 +22,29 @@ object ContainerType {
 
 case class PortMapping(containerPort: Int, hostPort: Option[Int], name: Option[String], protocol: String = "tcp")
 
-case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, portMappings: Option[List[PortMapping]])
+sealed trait EnvironmentType
+object EnvironmentType {
+  case object Value extends EnvironmentType
+  case object Secret extends EnvironmentType
+}
+
+sealed trait SecretType
+object SecretType {
+  case object Value extends SecretType
+  case object Reference extends SecretType
+}
+
+case class SecretReference(name: String, key: String)
+
+case class Secret(`type`: SecretType, value: Option[String], reference: Option[SecretReference])
+
+case class Environment(name: String, value: Option[String], secret: Option[Secret])
 
 case class Uri(value: String, output_file: Option[String], executable: Boolean = false,
                extract: Boolean = true, cache: Boolean = false)
 
+case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, 
+                               portMappings: Option[List[PortMapping]], environment: Option[List[Environment]])
 case class DockerDefinition(image: String, forcePullImage: Option[Boolean], parameters: Option[List[Parameter]])
 
 case class ContainerRunDefinition(
@@ -35,7 +53,7 @@ case class ContainerRunDefinition(
   container: ContainerDefinition,
   cpus: Option[Double],
   mem: Option[Long],
-  env: Option[Map[String, String]],
+  env: Option[List[Environment]],
   uris: Option[List[Uri]],
   labels: Option[Map[String, String]],
   constraints: Option[List[Constraint]],

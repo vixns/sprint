@@ -31,7 +31,21 @@ object Generators {
     forcePull <- Gen.option(Gen.oneOf(true, false))
     parameters <- Gen.option(Gen.listOf(parameterGen))
     portMappings <- Gen.option(Gen.listOf(portMappingGen))
-  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker, portMappings)
+    envList <- Gen.option(Gen.listOf(envGen))
+  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker, portMappings, envList)
+  val secretGen: Gen[Secret] = for {
+    secretType <- Gen.oneOf(SecretType.Value, SecretType.Reference)
+    value <- Gen.some(Gen.alphaStr)
+    secretReferenceKey <- Gen.alphaStr
+    secretReferenceValue <- Gen.alphaStr
+    secretReference <- Gen.some(SecretReference(secretReferenceKey, secretReferenceValue))
+  } yield Secret(secretType, value, secretReference)
+
+  val envGen: Gen[Environment] = for {
+    name <- Gen.alphaStr
+    value <- Gen.some(Gen.alphaStr)
+    secret <- Gen.some(secretGen)
+  } yield Environment(name, value, secret)
 
   val kvGen: Gen[(String, String)] = for {
     key <- Gen.listOfN(Gen.chooseNum(3, 10).sample.get, Gen.alphaChar).map(_.mkString)
@@ -81,7 +95,7 @@ object Generators {
     resources <- resourceGen
     cpus <- Gen.option(resources.cpus)
     mem <- Gen.option(resources.memory.inMegabytes)
-    env <- Gen.option(Gen.mapOf(kvGen))
+    env <- Gen.option(Gen.listOf(envGen))
     uris <- Gen.option(Gen.listOf(uriGen))
     labels <- Gen.option(Gen.mapOf(kvGen))
     constraints <- Gen.option(Gen.listOf(constraintGen))
@@ -96,7 +110,7 @@ object Generators {
     time = new DateTime(millis)
     state <- Gen.oneOf(Seq(ContainerRunState.Finished, ContainerRunState.Failed, ContainerRunState.Running))
     definition <- arbitrary[ContainerRunDefinition]
-    network <-  Gen.option(hostNetworkGen)
+    network <- Gen.option(hostNetworkGen)
   } yield ContainerRun(id, state, time, definition, network)
 
   implicit lazy val arbContainerRun: Arbitrary[ContainerRun] = Arbitrary(containerRunGen)

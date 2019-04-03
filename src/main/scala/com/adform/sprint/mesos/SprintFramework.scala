@@ -144,10 +144,33 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       .setRanges(Value.Ranges.newBuilder().addRange(Value.Range.newBuilder().setBegin(start).setEnd(end)))
       .build()
 
-    def buildVariable(nameValue: (String, String)): Variable = Variable.newBuilder()
-      .setName(nameValue._1)
-      .setValue(nameValue._2)
-      .build()
+    def buildVariable(e: model.Environment): Variable = if (e.value.isEmpty) {
+      val s = e.secret.get.`type` match {
+        case SecretType.Reference =>
+          org.apache.mesos.Protos.Secret.newBuilder()
+            .setType(org.apache.mesos.Protos.Secret.Type.REFERENCE)
+            .setReference(
+              org.apache.mesos.Protos.Secret.Reference.newBuilder()
+                .setName(e.secret.get.reference.get.name)
+                .setKey(e.secret.get.reference.get.key)
+            )
+        case _ =>
+          org.apache.mesos.Protos.Secret.newBuilder()
+            .setType(org.apache.mesos.Protos.Secret.Type.VALUE)
+            .setValue(org.apache.mesos.Protos.Secret.Value.newBuilder()
+              .setData(ByteString.copyFromUtf8(e.secret.get.value.get)))
+      }
+      Variable.newBuilder()
+        .setName(e.name)
+        .setType(Variable.Type.SECRET)
+        .setSecret(s).build()
+    } else {
+      Variable.newBuilder()
+        .setName(e.name)
+        .setType(Variable.Type.VALUE)
+        .setValue(e.value.get)
+        .build()
+    }
 
     def buildParameter(parameter: SParameter): MParameter = {
       val p = MParameter.newBuilder().setKey(parameter.key)
@@ -227,7 +250,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
     }
     containerInfo.build()
 
-    val containerEnvVars = containerRun.definition.env.getOrElse(Map.empty[String, String])
+    val containerEnvVars = containerRun.definition.env.getOrElse(List.empty[model.Environment])
 
     val portEnvVars = portMappings.zipWithIndex.flatMap { case (mapping, idx) =>
       mapping.hostPort.map { hostPort =>
@@ -235,19 +258,19 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         val portNameIdx = s"PORT$idx"
         val portNameSpecific = mapping.name.map(name => s"PORT_${envVarNameIllegalChars.replaceAllIn(name.toUpperCase, "_")}")
         val portNames = portNameContainer :: portNameIdx :: portNameSpecific.toList
-        portNames.map(_ -> hostPort.toString)
+        portNames.map(model.Environment(_, Option(hostPort.toString), None))
       }.getOrElse(Nil)
-    }.toMap
+    }
 
 
     val labelEnvVars = containerRun.definition.labels.getOrElse(Map.empty[String, String]).map { case (name, value) =>
       val nameReplaced = envVarNameIllegalChars.replaceAllIn(name.toUpperCase, "_")
-      ("SPRINT_LABEL_" + nameReplaced, value)
+      model.Environment("SPRINT_LABEL_" + nameReplaced, Option(value), None)
     }
 
-    val hostEnvVar = "HOST" -> slaveHostname
+    val hostEnvVar = model.Environment("HOST", Option(slaveHostname), None)
 
-    val environmentInfo = Environment.newBuilder()
+    val environmentInfo = org.apache.mesos.Protos.Environment.newBuilder()
       .addAllVariables((containerEnvVars ++ portEnvVars ++ labelEnvVars ++ Seq(hostEnvVar)).map(buildVariable).asJava)
 
     val commandInfo = CommandInfo.newBuilder()
