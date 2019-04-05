@@ -5,7 +5,7 @@ mediaType: application/json
 baseUri: http://$BASE_URL$/
 version: v1
 schemas:
-  - ContainerRunDefinition: !include schemas/ContainerRunDefinition.json
+  ContainerRunDefinition: !include schemas/ContainerRunDefinition.json
 
 /v1:
   /runs:
@@ -107,4 +107,4 @@ schemas:
             body:
               text/plain:
                 type: string
-                example: true
+                example: "true"
