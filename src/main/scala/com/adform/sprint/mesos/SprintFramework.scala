@@ -177,26 +177,26 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
       .map(mappings => createPortMappings(mappings, availablePorts.toList))
       .getOrElse((List.empty, List.empty))
 
-    val dockerInfo = {
-      val builder = DockerInfo.newBuilder()
-        .setImage(containerRun.definition.container.docker.image)
-        .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
-        .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
+    val builder = DockerInfo.newBuilder()
+      .setImage(containerRun.definition.container.docker.image)
+      .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
+      .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
 
-      if (containerRun.definition.container.`type`.equals(ContainerType.Docker))
-        if (containerRun.definition.networks.nonEmpty)
-          builder.setNetwork(DockerInfo.Network.USER)
-        else
-          builder.setNetwork(DockerInfo.Network.BRIDGE)
+    if (containerRun.definition.container.`type`.equals(ContainerType.Docker))
+      if (containerRun.definition.networks.nonEmpty)
+        builder.setNetwork(DockerInfo.Network.USER)
+      else
+        builder.setNetwork(DockerInfo.Network.BRIDGE)
 
-      if (portMappings.nonEmpty) {
-        log.debug(s"Mapping ${portMappings.length} ports")
-        builder.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
-      }
+    if (portMappings.nonEmpty) {
+      log.debug(s"Mapping ${portMappings.length} ports")
+      builder.addAllPortMappings(portMappings.map(buildPortMapping).asJava)
+    }
 
+    val containerInfo = ContainerInfo.newBuilder()
     containerRun.definition.container.`type` match {
       case ContainerType.Docker =>
-        val dockerInfo  = DockerInfo.newBuilder()
+        val dockerInfo = DockerInfo.newBuilder()
           .setImage(containerRun.definition.container.docker.image)
           .setForcePullImage(containerRun.definition.container.docker.forcePullImage.getOrElse(false))
           .addAllParameters(containerRun.definition.container.docker.parameters.getOrElse(List.empty[SParameter]).map(buildParameter).asJava)
@@ -217,14 +217,6 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
         containerInfo.setType(ContainerInfo.Type.MESOS).setMesos(mesosInfo)
       case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
     }
-
-    val containerInfo = ContainerInfo.newBuilder()
-      .setDocker(dockerInfo)
-      .setType(containerRun.definition.container.`type` match {
-        case ContainerType.Docker => ContainerInfo.Type.DOCKER
-        case ContainerType.Mesos => ContainerInfo.Type.MESOS
-        case _ => throw new IllegalArgumentException("Container type must be DOCKER or MESOS")
-      })
 
     if (containerRun.definition.networks.nonEmpty) {
       val networks: List[NetworkInfo] = containerRun.definition.networks match {

@@ -41,7 +41,7 @@ object Generators {
   val portRangeListGen: Gen[List[PortRange]] = for {
     rangeLimits <- Gen.listOf(Gen.chooseNum(0, 65534))
     rangeLimitsSorted = rangeLimits.toSet.toList.sorted
-    ranges = rangeLimitsSorted.zip(rangeLimitsSorted.drop(1)).map{ case (start, end) => PortRange(start, end) }
+    ranges = rangeLimitsSorted.zip(rangeLimitsSorted.drop(1)).map { case (start, end) => PortRange(start, end) }
   } yield ranges
 
   val resourceGen: Gen[Resources] = for {
@@ -90,7 +90,7 @@ object Generators {
     time = new DateTime(millis)
     state <- Gen.oneOf(Seq(ContainerRunState.Finished, ContainerRunState.Failed, ContainerRunState.Running))
     definition <- arbitrary[ContainerRunDefinition]
-    network <-  Gen.option(hostNetworkGen)
+    network <- Gen.option(hostNetworkGen)
   } yield ContainerRun(id, state, time, definition, network)
 
   implicit lazy val arbContainerRun: Arbitrary[ContainerRun] = Arbitrary(containerRunGen)
