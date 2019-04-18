@@ -33,9 +33,16 @@ final case class Endpoint(
   def baseUrl: String = s"$address:$port"
 }
 
+final case class Tls(
+  enabled: Boolean,
+  keyStoreFile: String,
+  keyStorePassword: String
+)
+
 final case class ApiConfiguration(
   bindEndpoint: Endpoint,
   advertisedEndpoint: Endpoint,
+  tls: Tls,
   timeout: FiniteDuration
 )
 
@@ -97,6 +104,9 @@ object Configuration {
     val apiBindAddress = config.getString("sprint.api.bind.address")
     val apiBindPort = config.getInt("sprint.api.bind.port")
 
+    val tlsEnabled = config.getBoolean("sprint.api.tls.enabled")
+    val tlsKeystoreFile = config.getString("sprint.api.tls.keyStoreFileName")
+    val tlsKeyStorePassword = config.getString("sprint.api.tls.keyStorePassword")
 
     val mesosWebUrl = s"http://$apiAdvertisedHostname:$apiAdvertisedPort/v1/runs"
     val mesosFrameworkName = config.getString("mesos.framework.name")
@@ -125,6 +135,7 @@ object Configuration {
       api = ApiConfiguration(
         bindEndpoint = Endpoint(apiBindAddress, apiBindPort),
         advertisedEndpoint = Endpoint(apiAdvertisedHostname, apiAdvertisedPort),
+        tls = Tls( tlsEnabled, tlsKeystoreFile ,tlsKeyStorePassword),
         apiTimeout
       ),
       mesos = MesosConfiguration(

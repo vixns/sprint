@@ -9,6 +9,9 @@
 package com.adform.sprint
 package api
 
+import java.io.InputStream
+import java.security.{KeyStore, SecureRandom}
+
 import mesos._
 import model._
 import model.serialization._
@@ -20,13 +23,14 @@ import akka.Done
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success, Try}
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.log4s._
 
 
@@ -41,6 +45,9 @@ class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSy
   private val apiConfig = Configuration().api
   private val advertisedEndpoint = apiConfig.advertisedEndpoint
   private val bindEndpoint = apiConfig.bindEndpoint
+  private val tlsEnabled: Boolean = apiConfig.tls.enabled
+  private val tlsKeystoreFile: String = apiConfig.tls.keyStoreFile
+  private val tlsKeyStorePassword: String = apiConfig.tls.keyStorePassword
 
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
@@ -81,29 +88,29 @@ class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSy
 
         }
       } ~
-      (post & entity(as[ContainerRunDefinition])) { definition =>
-        onSuccess(containerManager.createContainerRun(definition)) { result: ContainerRun =>
-          complete(StatusCodes.Created, result)
+        (post & entity(as[ContainerRunDefinition])) { definition =>
+          onSuccess(containerManager.createContainerRun(definition)) { result: ContainerRun =>
+            complete(StatusCodes.Created, result)
+          }
         }
-      }
     } ~
-    path("runs" / Segment) { id =>
-      get {
-        onSuccess(containerManager.getContainerRun(UUID.fromString(id))) {
-          case Some(container) => complete(StatusCodes.OK, container)
-          case None => complete(StatusCodes.NotFound, id)
-        }
-      } ~
-      delete {
-        onSuccess(containerManager.deleteContainerRun(UUID.fromString(id))) {
-          case Some(removedId) =>
-            frameworkDriver.killTask(id)
-            complete(StatusCodes.OK, removedId.toString)
-          case None =>
-            complete(StatusCodes.NotFound, id)
-        }
+      path("runs" / Segment) { id =>
+        get {
+          onSuccess(containerManager.getContainerRun(UUID.fromString(id))) {
+            case Some(container) => complete(StatusCodes.OK, container)
+            case None => complete(StatusCodes.NotFound, id)
+          }
+        } ~
+          delete {
+            onSuccess(containerManager.deleteContainerRun(UUID.fromString(id))) {
+              case Some(removedId) =>
+                frameworkDriver.killTask(id)
+                complete(StatusCodes.OK, removedId.toString)
+              case None =>
+                complete(StatusCodes.NotFound, id)
+            }
+          }
       }
-    }
 
   val docRoutes: Route = path("docs") {
     complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, doc))
@@ -113,12 +120,12 @@ class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSy
     pathEnd {
       complete(ApiStatus(imLeading, LeadingApi(leaderAddress, leaderPort), version, gitCommit))
     } ~
-    path("ping") {
-      complete("pong")
-    } ~
-    path("leading") {
-      complete(imLeading.toString)
-    }
+      path("ping") {
+        complete("pong")
+      } ~
+      path("leading") {
+        complete(imLeading.toString)
+      }
   }
 
   def proxyRoutes(destAddress: String, destPort: Int): Route = Route { context =>
@@ -139,19 +146,43 @@ class ApiService(containerManager: ContainerRunManager)(implicit system: ActorSy
     pathPrefix("v1") {
       apiRoutes(frameworkDriver)
     } ~
-    docRoutes ~
-    statusRoutes(imLeading = true, advertisedEndpoint.address, advertisedEndpoint.port)
+      docRoutes ~
+      statusRoutes(imLeading = true, advertisedEndpoint.address, advertisedEndpoint.port)
 
 
   def followerRoutes(leaderAddress: String, leaderPort: Int): Route =
     pathPrefix("v1") {
       proxyRoutes(leaderAddress, leaderPort)
     } ~
-    docRoutes ~
-    statusRoutes(imLeading = false, leaderAddress, leaderPort)
+      docRoutes ~
+      statusRoutes(imLeading = false, leaderAddress, leaderPort)
 
 
   def bindLeaderApi(frameworkDriver: MesosFrameworkDriver): Future[ApiBinding] = {
+    if (tlsEnabled) {
+      val keyFile: InputStream = getClass.getClassLoader.getResourceAsStream(tlsKeystoreFile)
+      require(keyFile != null, s"Failed to load key file: $tlsKeystoreFile")
+      val extension = if (tlsKeystoreFile.lastIndexOf('.') > 0) tlsKeystoreFile.substring(tlsKeystoreFile.lastIndexOf('.') + 1) else ""
+      val keyStore: KeyStore = extension.toLowerCase match {
+        case "jks" => KeyStore.getInstance("jks") //Java Key Store; Java default and only works with Java; tested
+        case "jcek" => KeyStore.getInstance("JCEKS") //Java Cryptography Extension KeyStore; Java 1.4+; not tested
+        case "pfx" | "p12" => KeyStore.getInstance("PKCS12") // PKCS #12, Common and supported by many languages/frameworks; tested
+        case _ => throw new IllegalArgumentException(s"Key has an unknown type extension $extension. Support types are jks, jcek, pfx, p12.")
+      }
+      val password: Array[Char] = (if (tlsKeyStorePassword == null) "" else tlsKeyStorePassword).toCharArray
+      keyStore.load(keyFile, password)
+      //TODO: looks like the "SunX509", "TLS", are defined in the keystore, should we pull them out rather than hard coding?
+      val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+      keyManagerFactory.init(keyStore, password)
+
+      val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+      tmf.init(keyStore)
+
+      val sslContext: SSLContext = SSLContext.getInstance("TLS")
+      sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
+      val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
+      Http().setDefaultServerHttpContext(https)
+    }
     log.info(s"Binding leader API on ${bindEndpoint.address}:${bindEndpoint.port}")
     Http().bindAndHandle(leaderRoutes(frameworkDriver), bindEndpoint.address, bindEndpoint.port).map { binding =>
       () => binding.unbind()
