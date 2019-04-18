@@ -30,8 +30,9 @@ object Generators {
     image <- imageGen
     forcePull <- Gen.option(Gen.oneOf(true, false))
     parameters <- Gen.option(Gen.listOf(parameterGen))
+    networks <- Gen.option(Gen.listOf(networkGen))
     portMappings <- Gen.option(Gen.listOf(portMappingGen))
-  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker, portMappings)
+  } yield ContainerDefinition(DockerDefinition(image, forcePull, parameters), ContainerType.Docker,networks,  portMappings)
 
   val kvGen: Gen[(String, String)] = for {
     key <- Gen.listOfN(Gen.chooseNum(3, 10).sample.get, Gen.alphaChar).map(_.mkString)
@@ -79,8 +80,7 @@ object Generators {
     env <- Gen.option(Gen.mapOf(kvGen))
     labels <- Gen.option(Gen.mapOf(kvGen))
     constraints <- Gen.option(Gen.listOf(constraintGen))
-    networks <- Gen.option(Gen.listOf(networkGen))
-  } yield ContainerRunDefinition(cmd, args, container, cpus, mem, env, labels, constraints, networks)
+  } yield ContainerRunDefinition(cmd, args, container, cpus, mem, env, labels, constraints)
 
   implicit lazy val arbContainerRunDefinition: Arbitrary[ContainerRunDefinition] = Arbitrary(containerRunDefinitionGen)
 

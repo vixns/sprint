@@ -22,7 +22,8 @@ object ContainerType {
 
 case class PortMapping(containerPort: Int, hostPort: Option[Int], name: Option[String], protocol: String = "tcp")
 
-case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, portMappings: Option[List[PortMapping]])
+case class ContainerDefinition(docker: DockerDefinition, `type`: ContainerType, networks: Option[List[Network]],
+                               portMappings: Option[List[PortMapping]])
 case class DockerDefinition(image: String, forcePullImage: Option[Boolean], parameters: Option[List[Parameter]])
 
 case class ContainerRunDefinition(
@@ -33,8 +34,7 @@ case class ContainerRunDefinition(
   mem: Option[Long],
   env: Option[Map[String, String]],
   labels: Option[Map[String, String]],
-  constraints: Option[List[Constraint]],
-  networks: Option[List[Network]]
+  constraints: Option[List[Constraint]]
 )
 
 case class Network(name: String, portMappings: Option[List[PortMapping]], labels: Option[Map[String, String]])
