@@ -7,8 +7,7 @@ object ContainerRunDefinitions {
   val hw = ContainerRunDefinition(
     None,
     None,
-    ContainerDefinition(DockerDefinition("hello-world", None, None), ContainerType.Docker, None, None, None, None),
-    None,
+    ContainerDefinition(DockerDefinition("hello-world", None, None), ContainerType.Docker, None, None),
     None,
     None,
     None,
@@ -20,8 +19,7 @@ object ContainerRunDefinitions {
   val hwWebServer = ContainerRunDefinition(
     None,
     None,
-    ContainerDefinition(DockerDefinition("crccheck/hello-world", None, None), ContainerType.Docker, None, None, None, None),
-    None,
+    ContainerDefinition(DockerDefinition("crccheck/hello-world", None, None), ContainerType.Docker, None, None),
     None,
     None,
     None,
