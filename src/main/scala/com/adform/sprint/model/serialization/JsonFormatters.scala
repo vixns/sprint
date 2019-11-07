@@ -109,11 +109,13 @@ trait JsonFormatters extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit object ConstraintFormat extends RootJsonFormat[Constraint] {
     def write(con: Constraint): JsArray = con match {
+      case IsConstraint(field, arg) => JsArray(JsString(field), JsString("IS"), JsString(arg))
       case LikeConstraint(field, arg) => JsArray(JsString(field), JsString("LIKE"), JsString(arg))
       case UnlikeConstraint(field, arg) => JsArray(JsString(field), JsString("UNLIKE"), JsString(arg))
     }
 
     def read(value: JsValue): Constraint = value match {
+      case JsArray(Vector(JsString(field), JsString("IS"), JsString(arg))) => IsConstraint(field, arg)
       case JsArray(Vector(JsString(field), JsString("LIKE"), JsString(arg))) => LikeConstraint(field, arg)
       case JsArray(Vector(JsString(field), JsString("UNLIKE"), JsString(arg))) => UnlikeConstraint(field, arg)
       case _ => throw DeserializationException("Can't deserialize a Constraint")

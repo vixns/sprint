@@ -87,6 +87,7 @@ case class ContainerRunList(runs: List[ContainerRun])
 case class Parameter(key: String, value: Option[String])
 
 sealed trait Constraint
+case class IsConstraint(key: String, argument: String) extends Constraint
 case class LikeConstraint(key: String, argument: String) extends Constraint
 case class UnlikeConstraint(key: String, argument: String) extends Constraint
 

@@ -455,6 +455,7 @@ class SprintFramework(containerRunManager: ContainerRunManager)(implicit context
     }
 
     constraint match {
+      case IsConstraint(field, arg) => fieldValue(field).exists(_ equals arg)
       case LikeConstraint(field, arg) => fieldValue(field).exists(_ matches arg)
       case UnlikeConstraint(field, arg) => !fieldValue(field).exists(_ matches arg)
     }
