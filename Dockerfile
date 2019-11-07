@@ -27,7 +27,8 @@ export DEBIAN_FRONTEND=noninteractive \
 && echo "deb http://http.debian.net/debian stretch-backports contrib non-free main" >> /etc/apt/sources.list \
 && echo "deb http://http.debian.net/debian buster contrib non-free main" >> /etc/apt/sources.list \
 && apt-get update \
-&& apt-get install -y libsasl2-modules libsvn1 libcurl4 curl
+&& apt-get install -y libsasl2-modules libsvn1 libcurl4 curl \
+libevent-2.1.6 libevent-openssl-2.1.6 libevent-pthreads-2.1.6
 COPY bin/run.sh /run.sh
 COPY --from=0 /sprint.jar /sprint.jar
 ENTRYPOINT ["/run.sh"]
